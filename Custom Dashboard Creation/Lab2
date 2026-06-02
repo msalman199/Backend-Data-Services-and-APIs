@@ -1,0 +1,402 @@
+Custom Dashboard Creation with Grafana
+Prerequisites
+Basic Linux command-line knowledge
+Understanding of system metrics (CPU, memory, disk usage)
+Familiarity with web browsers and basic networking concepts
+Completed Lab 1 or equivalent monitoring fundamentals
+Learning Objectives
+By the end of this lab, you will be able to:
+
+Install and configure Grafana on a Linux system
+Add and configure Prometheus as a data source
+Create custom monitoring dashboards with multiple panels
+Build queries to visualize system metrics
+Export and share dashboard configurations
+Environment Setup
+System Requirements
+Linux machine (Ubuntu 20.04+ or similar)
+Minimum 2GB RAM
+Internet connection for package downloads
+Sudo privileges
+Initial Setup
+Update system packages:
+sudo apt update
+Install required dependencies:
+sudo apt install -y wget curl software-properties-common
+Task 1: Install and Configure Grafana
+Step 1.1: Install Grafana
+# Add Grafana GPG key
+wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+
+# Add Grafana repository
+echo "deb https://packages.grafana.com/oss/deb stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+# Update and install Grafana
+sudo apt update
+sudo apt install -y grafana
+Step 1.2: Start Grafana Service
+# Enable Grafana to start on boot
+sudo systemctl enable grafana-server
+
+# Start Grafana service
+sudo systemctl start grafana-server
+
+# Verify Grafana is running
+sudo systemctl status grafana-server
+Expected Output: Service should show "active (running)" status.
+
+Step 1.3: Access Grafana Web Interface
+Open your web browser and navigate to:
+http://localhost:3000
+Default credentials:
+
+Username: admin
+Password: admin
+Change the password when prompted (use a memorable password for this lab)
+
+Step 1.4: Install Prometheus (Data Source)
+# Create Prometheus user
+sudo useradd --no-create-home --shell /bin/false prometheus
+
+# Create directories
+sudo mkdir /etc/prometheus
+sudo mkdir /var/lib/prometheus
+
+# Download Prometheus
+cd /tmp
+wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
+
+# Extract files
+tar -xvf prometheus-2.45.0.linux-amd64.tar.gz
+cd prometheus-2.45.0.linux-amd64
+
+# Copy binaries
+sudo cp prometheus /usr/local/bin/
+sudo cp promtool /usr/local/bin/
+
+# Copy configuration files
+sudo cp -r consoles /etc/prometheus
+sudo cp -r console_libraries /etc/prometheus
+sudo cp prometheus.yml /etc/prometheus/
+Step 1.5: Configure Prometheus
+Create a basic Prometheus configuration:
+
+sudo nano /etc/prometheus/prometheus.yml
+Add the following configuration (students should customize scrape_interval):
+
+global:
+  scrape_interval: # TODO: Set to 15s for this lab
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: # TODO: Add 'localhost:9100' as target
+Step 1.6: Install Node Exporter
+# Download Node Exporter
+cd /tmp
+wget https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz
+
+# Extract and install
+tar -xvf node_exporter-1.6.1.linux-amd64.tar.gz
+sudo cp node_exporter-1.6.1.linux-amd64/node_exporter /usr/local/bin/
+Step 1.7: Create Systemd Services
+Create Node Exporter service:
+
+sudo nano /etc/systemd/system/node_exporter.service
+Add the following content:
+
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+Create Prometheus service:
+
+sudo nano /etc/systemd/system/prometheus.service
+Add the following content:
+
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus/
+
+[Install]
+WantedBy=multi-user.target
+Step 1.8: Set Permissions and Start Services
+# Set ownership
+sudo chown -R prometheus:prometheus /etc/prometheus
+sudo chown -R prometheus:prometheus /var/lib/prometheus
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Start services
+sudo systemctl start node_exporter
+sudo systemctl start prometheus
+
+# Enable services
+sudo systemctl enable node_exporter
+sudo systemctl enable prometheus
+
+# Verify services
+sudo systemctl status node_exporter
+sudo systemctl status prometheus
+Verification: Access Prometheus at http://localhost:9090 and verify targets are up under Status > Targets.
+
+Task 2: Configure Data Sources and Create Dashboards
+Step 2.1: Add Prometheus Data Source to Grafana
+In Grafana web interface, click the gear icon (Configuration) in the left sidebar
+Select Data Sources
+Click Add data source
+Select Prometheus
+Configure the following:
+Name: Prometheus
+URL: http://localhost:9090
+Leave other settings as default
+Click Save & Test
+Expected Result: Green message "Data source is working"
+
+Step 2.2: Create Your First Dashboard
+Click the + icon in the left sidebar
+Select Dashboard
+Click Add new panel
+Step 2.3: Build CPU Usage Panel
+Configure the panel with the following:
+
+Query Section:
+
+Data source: Prometheus
+Metric: Enter the following PromQL query:
+# TODO: Complete this query to show CPU usage
+# Hint: Use rate() function with node_cpu_seconds_total metric
+# Filter for mode!="idle" and calculate average
+100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+Panel Settings (right sidebar):
+
+Title: CPU Usage (%)
+Description: System CPU utilization percentage
+Visualization:
+
+Select Time series or Gauge (experiment with both)
+Field Settings:
+
+Unit: Percent (0-100)
+Min: 0
+Max: 100
+Click Apply to save the panel
+
+Step 2.4: Add Memory Usage Panel
+Click Add panel at the top
+Select Add new panel
+Query:
+# TODO: Calculate memory usage percentage
+# Formula: (1 - (available_memory / total_memory)) * 100
+# Use node_memory_MemAvailable_bytes and node_memory_MemTotal_bytes
+(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+Panel Configuration:
+
+Title: Memory Usage (%)
+Visualization: Gauge
+Unit: Percent (0-100)
+Thresholds:
+Green: 0-70
+Yellow: 70-85
+Red: 85-100
+Click Apply
+
+Step 2.5: Add Disk Usage Panel
+Add another new panel
+Query:
+# TODO: Show available disk space
+# Use node_filesystem_avail_bytes for root filesystem
+# Filter: mountpoint="/"
+100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100)
+Panel Configuration:
+
+Title: Disk Usage - Root (%)
+Visualization: Stat or Gauge
+Unit: Percent (0-100)
+Click Apply
+
+Step 2.6: Add Network Traffic Panel
+Add a new panel
+Add two queries:
+Query A (Received):
+
+# TODO: Calculate network receive rate
+# Use rate() with node_network_receive_bytes_total
+rate(node_network_receive_bytes_total{device!="lo"}[5m])
+Query B (Transmitted):
+
+# TODO: Calculate network transmit rate
+rate(node_network_transmit_bytes_total{device!="lo"}[5m])
+Panel Configuration:
+
+Title: Network Traffic
+Visualization: Time series
+Unit: bytes/sec
+Legend: Show both queries
+Click Apply
+
+Step 2.7: Organize Dashboard Layout
+Arrange panels by dragging them into a logical layout:
+
+Top row: CPU and Memory gauges
+Middle row: Disk usage
+Bottom row: Network traffic graph
+Resize panels by dragging the bottom-right corner
+
+Click the Save dashboard icon (floppy disk) at the top
+
+Name: System Monitoring Dashboard
+
+Click Save
+
+Step 2.8: Configure Dashboard Settings
+Click the gear icon at the top (Dashboard settings)
+
+General Settings:
+
+Add tags: system, monitoring
+Set timezone to your local timezone
+Time Options:
+
+Set default time range: Last 15 minutes
+Auto-refresh: 10s
+Click Save dashboard
+
+Step 2.9: Create a Variables (Advanced)
+Add a variable to filter by instance:
+
+In Dashboard settings, go to Variables
+
+Click Add variable
+
+Configure:
+
+Name: instance
+Type: Query
+Data source: Prometheus
+Query: label_values(node_cpu_seconds_total, instance)
+Multi-value: Enable
+Include All option: Enable
+Click Apply
+
+Update one of your panels to use the variable:
+
+Edit CPU Usage panel
+Modify query to include: {instance=~"$instance"}
+Step 2.10: Export Dashboard
+Click the share icon at the top
+Select Export
+Click Save to file
+Save as system-dashboard.json
+To import later:
+
+Go to Dashboards > Import
+Upload the JSON file
+Verification Steps
+Verify Grafana Installation
+# Check Grafana service
+sudo systemctl status grafana-server | grep "active (running)"
+
+# Check Grafana is listening
+sudo netstat -tlnp | grep 3000
+Verify Prometheus and Node Exporter
+# Check Prometheus
+curl http://localhost:9090/-/healthy
+
+# Check Node Exporter
+curl http://localhost:9100/metrics | head -n 5
+Verify Dashboard Functionality
+Check data is flowing:
+
+All panels should display data
+Time series should show activity
+No "No Data" messages
+Test auto-refresh:
+
+Watch panels update every 10 seconds
+Generate load to see changes:
+# Generate CPU load
+yes > /dev/null &
+# Note the PID to kill later
+# Kill with: kill <PID>
+Test time range selector:
+
+Change time range to "Last 5 minutes"
+Verify data updates accordingly
+Export verification:
+
+Confirm JSON file was downloaded
+Open file and verify it contains panel configurations
+Troubleshooting Tips
+Grafana Won't Start
+# Check logs
+sudo journalctl -u grafana-server -n 50
+
+# Verify port is not in use
+sudo lsof -i :3000
+No Data in Panels
+# Verify Prometheus targets
+curl http://localhost:9090/api/v1/targets | jq
+
+# Check if metrics are being collected
+curl http://localhost:9100/metrics | grep node_cpu
+Query Errors
+Verify PromQL syntax in Prometheus UI first
+Check metric names exist: http://localhost:9090/graph
+Ensure time range has data
+Dashboard Not Saving
+Check browser console for errors (F12)
+Verify Grafana has write permissions to its database
+Try logging out and back in
+Conclusion
+You have successfully:
+
+Installed and configured Grafana on a Linux system
+Set up Prometheus and Node Exporter for metrics collection
+Created a comprehensive monitoring dashboard with multiple visualization types
+Configured queries using PromQL to display system metrics
+Implemented dashboard variables for dynamic filtering
+Exported dashboard configurations for reuse
+Key Skills Acquired:
+
+Grafana dashboard design and panel configuration
+PromQL query language basics
+Data source integration
+Visualization selection and customization
+Dashboard management and sharing
+Next Steps:
+
+Explore additional Grafana plugins
+Create alerting rules based on thresholds
+Build dashboards for application-specific metrics
+Integrate additional data sources (MySQL, InfluxDB, etc.)
+Real-World Applications:
+
+DevOps monitoring and observability
+System performance tracking
+Capacity planning
+Incident response and troubleshooting
+SLA monitoring and reporting
+Your custom dashboard provides real-time visibility into system health and can be extended to monitor applications, databases, and infrastructure components in production environments.
