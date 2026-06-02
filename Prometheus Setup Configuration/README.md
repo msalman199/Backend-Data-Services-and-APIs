@@ -1,61 +1,157 @@
-# 📊 Prometheus Setup & Configuration 
+# 📈 Prometheus Setup & Configuration 
 
-## 📋 Prerequisites
-* 🐧 Basic Linux command-line knowledge
-* 📝 Understanding of YAML syntax
-* ⚙️ Familiarity with system services and processes
-* 🌐 Basic networking concepts (ports, HTTP)
+<div align="center">
 
-## 🎯 Learning Objectives
-By completing this lab, you will:
-* 🛠️ Install and configure Prometheus on a Linux system
-* 🔌 Configure Prometheus to scrape metrics from multiple targets
-* 🏗️ Understand Prometheus configuration file structure
-* 🧪 Verify Prometheus is collecting metrics successfully
+# 🚀 Prometheus Monitoring Setup & Configuration
 
-## 💻 Environment Setup
-> ⚠️ **Note:** Al Nafi provides a bare-metal Linux cloud machine. Click the **Start Lab** button to provision your environment. All tools will be installed during this lab.
+### 🔍 Learn How to Deploy, Configure, and Monitor Infrastructure with Prometheus
 
-### System Requirements
-* 🖥️ Linux machine (Ubuntu 20.04+ or CentOS 7+)
-* 🔑 Sudo privileges
-* 🌍 Internet connectivity
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
+![Node Exporter](https://img.shields.io/badge/Node_Exporter-000000?style=for-the-badge&logo=prometheus&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Monitoring](https://img.shields.io/badge/Observability-FF6F00?style=for-the-badge&logo=datadog&logoColor=white)
+
+</div>
 
 ---
 
-## 🛠️ Task 1: Install Prometheus
+# 📖 Overview
 
-### 📥 Step 1: Download and Extract Prometheus
-Create a working directory and download Prometheus:
+This hands-on lab guides you through the complete installation and configuration of **Prometheus Monitoring System**. You will learn how to deploy Prometheus, configure scrape targets, monitor Linux system metrics using Node Exporter, and create a custom Python application exposing Prometheus metrics.
+
+---
+
+# 🎯 Learning Objectives
+
+By completing this lab, you will be able to:
+
+✅ Install and configure Prometheus on Linux
+
+✅ Configure Prometheus scrape jobs
+
+✅ Understand Prometheus YAML configuration
+
+✅ Monitor system metrics using Node Exporter
+
+✅ Expose custom application metrics
+
+✅ Validate Prometheus configuration
+
+✅ Query collected metrics using PromQL
+
+---
+
+# 📋 Prerequisites
+
+| Requirement | Status |
+|------------|---------|
+| Basic Linux Command Line Skills | ✅ |
+| YAML Syntax Knowledge | ✅ |
+| Understanding of System Services | ✅ |
+| Networking Basics (HTTP, Ports) | ✅ |
+
+---
+
+# 🖥️ Environment Setup
+
+> ⚠️ Al Nafi provides a bare-metal Linux cloud machine. Click **Start Lab** to provision your environment.
+
+---
+
+## 📦 System Requirements
+
+| Component | Requirement |
+|------------|------------|
+| Operating System | Ubuntu 20.04+ / CentOS 7+ |
+| Access | Sudo Privileges |
+| Network | Internet Connectivity |
+| Monitoring Server | Prometheus |
+
+---
+
+# 🏗️ Task 1: Install Prometheus
+
+---
+
+# 🔹 Step 1.1 — Download and Extract Prometheus
+
+## 📥 Download Prometheus
+
 ```bash
 cd /opt
+
 sudo wget https://github.com/prometheus/prometheus/releases/download/v2.47.0/prometheus-2.47.0.linux-amd64.tar.gz
+```
+
+## 📦 Extract Archive
+
+```bash
 sudo tar xvfz prometheus-2.47.0.linux-amd64.tar.gz
+```
+
+## 📁 Rename Directory
+
+```bash
 sudo mv prometheus-2.47.0.linux-amd64 prometheus
 ```
 
-### 👤 Step 2: Create Prometheus User and Directories
+---
+
+# 🔹 Step 1.2 — Create Prometheus User & Directories
+
+## 👤 Create Dedicated User
+
 ```bash
 sudo useradd --no-create-home --shell /bin/false prometheus
-sudo mkdir -p /etc/prometheus /var/lib/prometheus
+```
+
+## 📂 Create Directories
+
+```bash
+sudo mkdir -p /etc/prometheus
+
+sudo mkdir -p /var/lib/prometheus
+```
+
+## 🔐 Assign Ownership
+
+```bash
 sudo chown prometheus:prometheus /var/lib/prometheus
 ```
 
-### 🔐 Step 3: Copy Binaries and Set Permissions
+---
+
+# 🔹 Step 1.3 — Copy Binaries & Configure Permissions
+
+## 📋 Copy Prometheus Binaries
+
 ```bash
 sudo cp /opt/prometheus/prometheus /usr/local/bin/
+
 sudo cp /opt/prometheus/promtool /usr/local/bin/
+```
+
+## 🔒 Set Ownership
+
+```bash
 sudo chown prometheus:prometheus /usr/local/bin/prometheus
+
 sudo chown prometheus:prometheus /usr/local/bin/promtool
 ```
 
-### 📄 Step 4: Create Prometheus Systemd Service
-Create the service file:
+---
+
+# 🔹 Step 1.4 — Create Prometheus Systemd Service
+
+## ⚙️ Create Service File
+
 ```bash
 sudo nano /etc/systemd/system/prometheus.service
 ```
 
-Add the following configuration:
+### Add Configuration
+
 ```ini
 [Unit]
 Description=Prometheus Monitoring System
@@ -66,6 +162,7 @@ After=network-online.target
 User=prometheus
 Group=prometheus
 Type=simple
+
 ExecStart=/usr/local/bin/prometheus \
   --config.file=/etc/prometheus/prometheus.yml \
   --storage.tsdb.path=/var/lib/prometheus/ \
@@ -76,48 +173,108 @@ ExecStart=/usr/local/bin/prometheus \
 WantedBy=multi-user.target
 ```
 
-> 📝 **TODO:** Research what each `ExecStart` flag does and document in your notes.
+---
+
+## 📝 Understanding ExecStart Flags
+
+| Flag | Purpose |
+|--------|----------|
+| --config.file | Prometheus configuration file |
+| --storage.tsdb.path | Metrics database location |
+| --web.console.templates | Console template location |
+| --web.console.libraries | Console libraries location |
+
+### 🎯 Lab Task
+
+Research each flag and document your findings.
 
 ---
 
-## ⚙️ Task 2: Configure Prometheus Targets
+# 🏗️ Task 2: Configure Prometheus Targets
 
-### 📝 Step 1: Create Base Configuration File
-Create the main Prometheus configuration:
+---
+
+# 🔹 Step 2.1 — Create Base Configuration
+
+## 📄 Create Configuration File
+
 ```bash
 sudo nano /etc/prometheus/prometheus.yml
 ```
 
-Add the following starter configuration:
+### Starter Configuration
+
 ```yaml
 global:
-  scrape_interval: 15s
+  scrape_interval: 10s
   evaluation_interval: 15s
 
 scrape_configs:
+
   - job_name: 'prometheus'
+
     static_configs:
-      - targets: ['localhost:9090']
+      - targets:
+          - 'localhost:9090'
+
+        labels:
+          environment: 'lab'
 ```
 
-> 📝 **TODO:** Modify the `scrape_interval` to 10 seconds and add a label `environment: 'lab'` to the prometheus job.
+---
 
-### 📦 Step 2: Install Node Exporter for System Metrics
-Download and install Node Exporter:
+## 🎯 Lab Challenge
+
+✔ Change scrape_interval from 15s → 10s
+
+✔ Add label:
+
+```yaml
+environment: 'lab'
+```
+
+---
+
+# 🔹 Step 2.2 — Install Node Exporter
+
+## 📥 Download Node Exporter
+
 ```bash
 cd /opt
+
 sudo wget https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz
+```
+
+## 📦 Extract Archive
+
+```bash
 sudo tar xvfz node_exporter-1.6.1.linux-amd64.tar.gz
+```
+
+## 📋 Copy Binary
+
+```bash
 sudo cp node_exporter-1.6.1.linux-amd64/node_exporter /usr/local/bin/
+```
+
+## 🔐 Set Ownership
+
+```bash
 sudo chown prometheus:prometheus /usr/local/bin/node_exporter
 ```
 
-Create Node Exporter service:
+---
+
+# 🔹 Step 2.3 — Create Node Exporter Service
+
+## ⚙️ Create Service File
+
 ```bash
 sudo nano /etc/systemd/system/node_exporter.service
 ```
 
-Add the following content:
+### Add Configuration
+
 ```ini
 [Unit]
 Description=Node Exporter
@@ -128,186 +285,453 @@ After=network-online.target
 User=prometheus
 Group=prometheus
 Type=simple
+
 ExecStart=/usr/local/bin/node_exporter
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-### 🔗 Step 3: Configure Node Exporter as a Target
-Edit the Prometheus configuration to add Node Exporter:
+---
+
+# 🔹 Step 2.4 — Add Node Exporter Target
+
+## Edit Configuration
+
 ```bash
 sudo nano /etc/prometheus/prometheus.yml
 ```
 
-> 📝 **TODO:** Add a new `scrape_config` job named `node_exporter` that scrapes `localhost:9100`. Include labels for `job_type: 'system_metrics'`.
+### Add Scrape Job
 
-Expected structure:
 ```yaml
   - job_name: 'node_exporter'
+
     static_configs:
-      - targets: ['localhost:9100']
+      - targets:
+          - 'localhost:9100'
+
         labels:
-          # TODO: Add your labels here
+          job_type: 'system_metrics'
+          environment: 'lab'
 ```
 
-### 🚀 Step 4: Set Permissions and Start Services
+---
+
+# 🔹 Step 2.5 — Start Services
+
+## Assign Permissions
+
 ```bash
 sudo chown -R prometheus:prometheus /etc/prometheus
+```
+
+## Reload Systemd
+
+```bash
 sudo systemctl daemon-reload
+```
+
+## Start Node Exporter
+
+```bash
 sudo systemctl start node_exporter
+
 sudo systemctl enable node_exporter
+```
+
+## Start Prometheus
+
+```bash
 sudo systemctl start prometheus
+
 sudo systemctl enable prometheus
 ```
 
-### 🐍 Step 5: Configure a Custom Application Target
-Create a simple Python application that exposes metrics:
+---
+
+# 🏗️ Task 3: Create Custom Application Metrics
+
+---
+
+# 🔹 Step 3.1 — Install Python Dependencies
+
+## Update Packages
+
 ```bash
-sudo apt update && sudo apt install -y python3-pip
+sudo apt update
+```
+
+## Install Pip
+
+```bash
+sudo apt install -y python3-pip
+```
+
+## Install Prometheus Client
+
+```bash
 pip3 install prometheus_client
 ```
 
-Create a sample application file:
+---
+
+# 🔹 Step 3.2 — Create Sample Application
+
+## Create File
+
 ```bash
 nano ~/sample_app.py
 ```
 
-> 📝 **TODO:** Complete the following application script to expose custom metrics:
+### Complete Application
 
 ```python
 from prometheus_client import start_http_server, Counter, Gauge
 import time
 import random
 
-# TODO: Create a Counter metric named 'app_requests_total' with description 'Total app requests'
-requests_counter = None
+requests_counter = Counter(
+    'app_requests_total',
+    'Total app requests'
+)
 
-# TODO: Create a Gauge metric named 'app_temperature' with description 'Current temperature'
-temperature_gauge = None
+temperature_gauge = Gauge(
+    'app_temperature',
+    'Current temperature'
+)
 
 def process_request():
-    """Simulate processing a request"""
-    # TODO: Increment the requests counter
-    pass
+    requests_counter.inc()
 
 def update_temperature():
-    """Simulate temperature reading"""
-    # TODO: Set the temperature gauge to a random value between 20 and 30
-    pass
+    temperature_gauge.set(
+        random.uniform(20, 30)
+    )
 
 if __name__ == '__main__':
-    # Start metrics server on port 8000
+
     start_http_server(8000)
+
     print("Metrics server started on port 8000")
-    
+
     while True:
         process_request()
         update_temperature()
         time.sleep(5)
 ```
 
-Run the application in the background:
+---
+
+# 🔹 Step 3.3 — Run Application
+
 ```bash
 python3 ~/sample_app.py &
 ```
 
-> 📝 **TODO:** Add this custom application as a new scrape target in `/etc/prometheus/prometheus.yml` with `job_name` 'sample_app' targeting `localhost:8000`.
+Expected Output:
 
-Reload the Prometheus configuration:
+```text
+Metrics server started on port 8000
+```
+
+---
+
+# 🔹 Step 3.4 — Add Application Target
+
+Edit configuration:
+
+```bash
+sudo nano /etc/prometheus/prometheus.yml
+```
+
+Add:
+
+```yaml
+  - job_name: 'sample_app'
+
+    static_configs:
+      - targets:
+          - 'localhost:8000'
+
+        labels:
+          application: 'sample_app'
+          environment: 'lab'
+```
+
+---
+
+# 🔹 Step 3.5 — Reload Configuration
+
 ```bash
 sudo systemctl reload prometheus
 ```
 
 ---
 
-## 🧪 Verification
+# ✅ Verification
 
-### 🔍 Step 1: Check Service Status
-Verify all services are running properly:
+---
+
+# 🔍 Step 4.1 — Verify Service Status
+
 ```bash
 sudo systemctl status prometheus
+```
+
+```bash
 sudo systemctl status node_exporter
 ```
-> ✨ **Expected Output:** Both services should show status **"active (running)"**.
 
-### 🌐 Step 2: Access Prometheus Web UI
-Open a web browser and navigate to:
+### Expected Output
+
+```text
+active (running)
+```
+
+---
+
+# 🔍 Step 4.2 — Access Prometheus UI
+
+Open Browser:
+
 ```text
 http://<your-server-ip>:9090
 ```
 
-**Verification Tasks:**
-1. Navigate to **Status > Targets**
-2. Confirm all three targets show **"UP"** status:
-   * `prometheus` (localhost:9090)
-   * `node_exporter` (localhost:9100)
-   * `sample_app` (localhost:8000)
+Navigate:
 
-### 📈 Step 3: Query Metrics
-In the Prometheus UI, execute these testing queries:
+```text
+Status → Targets
+```
+
+### Expected Targets
+
+| Target | Status |
+|----------|---------|
+| localhost:9090 | UP ✅ |
+| localhost:9100 | UP ✅ |
+| localhost:8000 | UP ✅ |
+
+---
+
+# 🔍 Step 4.3 — Query Metrics
+
+## Prometheus Self Monitoring
+
 ```promql
-# Check Prometheus is scraping itself
 up{job="prometheus"}
+```
 
-# Check Node Exporter metrics
+---
+
+## Node Exporter Metrics
+
+```promql
 node_cpu_seconds_total
+```
 
-# Check custom application metrics
+---
+
+## Custom Counter
+
+```promql
 app_requests_total
+```
+
+---
+
+## Custom Gauge
+
+```promql
 app_temperature
 ```
 
-> 📝 **TODO:** Write a query that shows the rate of requests per second for your sample application over the last 5 minutes. *Hint: Use the `rate()` function.*
+---
 
-### 🛠️ Step 4: Validate Configuration File
+## 🚀 Advanced Challenge
+
+Calculate request rate over last 5 minutes:
+
+```promql
+rate(app_requests_total[5m])
+```
+
+---
+
+# 🔍 Step 4.4 — Validate Configuration
+
 ```bash
 promtool check config /etc/prometheus/prometheus.yml
 ```
-> ✨ **Expected Output:** `"SUCCESS: ... is valid prometheus config file syntax"`
+
+### Expected Output
+
+```text
+SUCCESS:
+is valid prometheus config file syntax
+```
 
 ---
 
-## 🧰 Troubleshooting Tips
-
-* **❌ Issue: Prometheus service fails to start**
-  * Check logs: `sudo journalctl -u prometheus -n 50`
-  * Validate config: `promtool check config /etc/prometheus/prometheus.yml`
-  * Verify permissions: `ls -la /etc/prometheus/`
-
-* **❌ Issue: Target shows "DOWN" status**
-  * Verify the service is running on the specified port
-  * Check firewall rules: `sudo netstat -tlnp | grep <port>`
-  * Test connectivity: `curl http://localhost:<port>/metrics`
-
-* **❌ Issue: No metrics appearing**
-  * Confirm `scrape_interval` has elapsed
-  * Check target health in **Status > Targets**
-  * Verify metric names using `/metrics` endpoint directly
+# 🛠️ Troubleshooting
 
 ---
 
-## 🏆 Expected Outcomes
-After completing this lab, you should have:
-* A fully functional Prometheus server running on port `9090`
-* Three configured targets actively being scraped:
-  1. Prometheus self-monitoring
-  2. Node Exporter for system metrics
-  3. Custom Python application with custom metrics
-* Ability to query and visualize metrics through the Prometheus UI
-* Understanding of Prometheus configuration structure
-* Working knowledge of service management with systemd
+## ❌ Prometheus Won't Start
+
+### Check Logs
+
+```bash
+sudo journalctl -u prometheus -n 50
+```
+
+### Validate Configuration
+
+```bash
+promtool check config /etc/prometheus/prometheus.yml
+```
+
+### Check Permissions
+
+```bash
+ls -la /etc/prometheus/
+```
 
 ---
 
-## 🏁 Conclusion
-You have successfully installed and configured Prometheus as a monitoring solution. You've learned how to:
-* Set up Prometheus as a systemd service
-* Configure multiple scrape targets using `static_configs`
-* Deploy exporters (Node Exporter) for system-level metrics
-* Create custom applications that expose Prometheus metrics
-* Verify monitoring pipeline functionality
+## ❌ Target Shows DOWN
 
-### 🧠 Key Concepts Mastered:
-* Prometheus architecture and components
-* YAML configuration file syntax
+### Verify Service
+
+```bash
+sudo netstat -tlnp
+```
+
+### Check Specific Port
+
+```bash
+sudo netstat -tlnp | grep <port>
+```
+
+### Test Metrics Endpoint
+
+```bash
+curl http://localhost:<port>/metrics
+```
+
+---
+
+## ❌ Metrics Not Appearing
+
+✔ Wait for scrape interval
+
+✔ Verify target health
+
+✔ Confirm endpoint exports metrics
+
+✔ Check metric names
+
+---
+
+# 🎯 Expected Outcomes
+
+After completing this lab you should have:
+
+✅ Prometheus running on Port 9090
+
+✅ Node Exporter collecting system metrics
+
+✅ Custom Python application exporting metrics
+
+✅ Three active scrape targets
+
+✅ Functional Prometheus Web UI
+
+✅ Valid Prometheus configuration
+
+✅ Ability to query metrics using PromQL
+
+---
+
+# 🧠 Key Concepts Mastered
+
+| Concept | Skill Level |
+|----------|------------|
+| Prometheus Architecture | ⭐⭐⭐⭐⭐ |
+| YAML Configuration | ⭐⭐⭐⭐⭐ |
+| Scrape Jobs | ⭐⭐⭐⭐⭐ |
+| Node Exporter | ⭐⭐⭐⭐⭐ |
+| Custom Metrics | ⭐⭐⭐⭐⭐ |
+| PromQL Basics | ⭐⭐⭐⭐⭐ |
+| Service Management | ⭐⭐⭐⭐⭐ |
+
+---
+
+# 🎓 Lab Completion
+
+## Congratulations! 🎉
+
+You have successfully:
+
+✅ Installed Prometheus
+
+✅ Configured Prometheus as a systemd service
+
+✅ Added multiple scrape targets
+
+✅ Installed Node Exporter
+
+✅ Created a custom metrics-enabled Python application
+
+✅ Verified metrics collection
+
+✅ Queried metrics using PromQL
+
+---
+
+# 🚀 Next Steps
+
+🔹 Learn Advanced PromQL
+
+🔹 Create Alerting Rules
+
+🔹 Configure Alertmanager
+
+🔹 Integrate Grafana Dashboards
+
+🔹 Explore Service Discovery
+
+🔹 Monitor Kubernetes Clusters
+
+🔹 Build Production Monitoring Solutions
+
+---
+
+# 🌍 Real-World Applications
+
+📊 Infrastructure Monitoring
+
+📈 Performance Analysis
+
+⚡ Capacity Planning
+
+🚨 Incident Detection
+
+🔍 System Observability
+
+☁️ Cloud Monitoring
+
+🏢 Enterprise Monitoring Platforms
+
+---
+
+<div align="center">
+
+# 🚀 Happy Monitoring with Prometheus!
+
+### 📈 Collect • Store • Query • Visualize
+
+⭐ Prometheus is the foundation of modern cloud-native monitoring and observability.
+
+</div>
