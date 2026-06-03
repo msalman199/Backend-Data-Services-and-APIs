@@ -1,0 +1,8 @@
+cluster.name: log-pipeline-cluster
+node.name: node-1
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+network.host: localhost
+http.port: 9200
+discovery.type: single-node
+xpack.security.enabled: false
