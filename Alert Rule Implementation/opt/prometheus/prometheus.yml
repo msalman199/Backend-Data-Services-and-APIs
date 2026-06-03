@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# TODO: Add alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093  # Alertmanager address
+
+# TODO: Add rule files configuration
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TODO: Add node_exporter scrape config
+  - job_name: 'node'
+    static_configs:
+      - targets: # TODO: Add node_exporter target
