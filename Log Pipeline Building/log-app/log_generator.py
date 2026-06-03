@@ -30,3 +30,20 @@ def generate_logs():
 
 if __name__ == "__main__":
     generate_logs()
+# Add this configuration at the top of generate_logs():
+logging.basicConfig(
+    filename='/home/ubuntu/app.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# In the loop:
+for _ in range(20):
+    level, message = random.choice(log_messages)
+    if level == "INFO":
+        logging.info(message)
+    elif level == "WARNING":
+        logging.warning(message)
+    elif level == "ERROR":
+        logging.error(message)
+    time.sleep(2)
