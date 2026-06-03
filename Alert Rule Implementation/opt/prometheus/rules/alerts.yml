@@ -1,0 +1,36 @@
+groups:
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # TODO: Define an alert for high CPU usage
+      # Alert should fire when CPU usage > 80% for 2 minutes
+      - alert: HighCPUUsage
+        expr: # TODO: Write PromQL expression
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: # TODO: Add description with instance details
+
+      # TODO: Define an alert for high memory usage
+      # Alert should fire when memory usage > 85%
+      - alert: HighMemoryUsage
+        expr: # TODO: Write PromQL expression
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: # TODO: Add summary
+          description: # TODO: Add description
+
+      # TODO: Define an alert for disk space
+      # Alert should fire when disk usage > 90%
+      - alert: DiskSpaceLow
+        expr: # TODO: Write PromQL expression
+        for: 1m
+        labels:
+          severity: # TODO: Set appropriate severity
+        annotations:
+          summary: # TODO: Add summary
+          description: # TODO: Add description
