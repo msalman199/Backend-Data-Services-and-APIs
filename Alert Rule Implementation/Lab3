@@ -1,0 +1,374 @@
+ Alert Rule Implementation
+Prerequisites
+Basic understanding of monitoring systems and metrics
+Familiarity with Linux command line
+Knowledge of YAML syntax
+Understanding of basic networking concepts
+Completion of previous monitoring labs (or equivalent experience)
+Learning Objectives
+By the end of this lab, you will be able to:
+
+Configure alert rules in Prometheus
+Define threshold-based alerting conditions
+Implement Alertmanager for alert routing
+Test and validate alert firing conditions
+Troubleshoot common alerting issues
+Environment Setup
+System Requirements
+Linux machine (Ubuntu 20.04+ or CentOS 8+)
+Minimum 2GB RAM, 10GB disk space
+Root or sudo access
+Install Required Tools
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install wget and tar
+sudo apt install -y wget tar
+
+# Download Prometheus
+cd /tmp
+wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
+tar xvfz prometheus-2.45.0.linux-amd64.tar.gz
+sudo mv prometheus-2.45.0.linux-amd64 /opt/prometheus
+
+# Download Alertmanager
+wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
+tar xvfz alertmanager-0.26.0.linux-amd64.tar.gz
+sudo mv alertmanager-0.26.0.linux-amd64 /opt/alertmanager
+
+# Install Node Exporter for metrics
+wget https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz
+tar xvfz node_exporter-1.6.1.linux-amd64.tar.gz
+sudo mv node_exporter-1.6.1.linux-amd64 /opt/node_exporter
+Task 1: Define Alert Rules
+Step 1: Create Alert Rules Directory
+sudo mkdir -p /opt/prometheus/rules
+cd /opt/prometheus/rules
+Step 2: Create Alert Rules File
+Create a file named alerts.yml:
+
+sudo nano /opt/prometheus/rules/alerts.yml
+Add the following alert rule template:
+
+groups:
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # TODO: Define an alert for high CPU usage
+      # Alert should fire when CPU usage > 80% for 2 minutes
+      - alert: HighCPUUsage
+        expr: # TODO: Write PromQL expression
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: # TODO: Add description with instance details
+
+      # TODO: Define an alert for high memory usage
+      # Alert should fire when memory usage > 85%
+      - alert: HighMemoryUsage
+        expr: # TODO: Write PromQL expression
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: # TODO: Add summary
+          description: # TODO: Add description
+
+      # TODO: Define an alert for disk space
+      # Alert should fire when disk usage > 90%
+      - alert: DiskSpaceLow
+        expr: # TODO: Write PromQL expression
+        for: 1m
+        labels:
+          severity: # TODO: Set appropriate severity
+        annotations:
+          summary: # TODO: Add summary
+          description: # TODO: Add description
+Hints for PromQL expressions:
+
+CPU: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+Memory: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+Disk: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100
+Step 3: Configure Prometheus to Use Alert Rules
+Edit Prometheus configuration:
+
+sudo nano /opt/prometheus/prometheus.yml
+Add the following configuration:
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# TODO: Add alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093  # Alertmanager address
+
+# TODO: Add rule files configuration
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TODO: Add node_exporter scrape config
+  - job_name: 'node'
+    static_configs:
+      - targets: # TODO: Add node_exporter target
+Step 4: Configure Alertmanager
+Create Alertmanager configuration:
+
+sudo nano /opt/alertmanager/alertmanager.yml
+Add basic routing configuration:
+
+global:
+  resolve_timeout: 5m
+
+# TODO: Configure route for alert routing
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+
+# TODO: Define receivers
+receivers:
+  - name: 'default-receiver'
+    # For this lab, we'll use webhook for testing
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
+
+# TODO: Add inhibit rules (optional)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+Step 5: Create Simple Webhook Receiver for Testing
+Create a Python script to receive alerts:
+
+nano /tmp/webhook_receiver.py
+#!/usr/bin/env python3
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+from datetime import datetime
+
+class WebhookHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        # TODO: Read content length and request body
+        content_length = # TODO: Get content length from headers
+        post_data = # TODO: Read request body
+        
+        # TODO: Parse JSON data
+        try:
+            alerts = # TODO: Parse JSON
+            
+            # TODO: Process each alert
+            print(f"\n{'='*60}")
+            print(f"Alert received at {datetime.now()}")
+            print(f"{'='*60}")
+            
+            for alert in alerts.get('alerts', []):
+                # TODO: Extract alert details
+                status = # TODO: Get status
+                labels = # TODO: Get labels
+                annotations = # TODO: Get annotations
+                
+                # TODO: Print alert information
+                print(f"Status: {status}")
+                print(f"Alert: {labels.get('alertname', 'Unknown')}")
+                print(f"Severity: {labels.get('severity', 'Unknown')}")
+                print(f"Summary: {annotations.get('summary', 'N/A')}")
+                print(f"Description: {annotations.get('description', 'N/A')}")
+                print("-" * 60)
+                
+        except Exception as e:
+            print(f"Error processing alert: {e}")
+        
+        # TODO: Send response
+        self.send_response(200)
+        self.end_headers()
+    
+    def log_message(self, format, *args):
+        pass  # Suppress default logging
+
+# TODO: Start server
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 5001), WebhookHandler)
+    print("Webhook receiver listening on port 5001...")
+    server.serve_forever()
+Make it executable:
+
+chmod +x /tmp/webhook_receiver.py
+Task 2: Test Alerts
+Step 1: Start All Services
+Open multiple terminal sessions or use tmux/screen.
+
+Terminal 1 - Start Node Exporter:
+
+cd /opt/node_exporter
+./node_exporter
+Terminal 2 - Start Prometheus:
+
+cd /opt/prometheus
+./prometheus --config.file=prometheus.yml
+Terminal 3 - Start Alertmanager:
+
+cd /opt/alertmanager
+./alertmanager --config.file=alertmanager.yml
+Terminal 4 - Start Webhook Receiver:
+
+python3 /tmp/webhook_receiver.py
+Step 2: Verify Services are Running
+# Check Prometheus
+curl http://localhost:9090/-/healthy
+
+# Check Alertmanager
+curl http://localhost:9093/-/healthy
+
+# Check Node Exporter
+curl http://localhost:9100/metrics | head
+Step 3: View Alert Rules in Prometheus
+Open a web browser or use curl:
+
+# View configured rules
+curl http://localhost:9090/api/v1/rules | python3 -m json.tool
+
+# View current alerts
+curl http://localhost:9090/api/v1/alerts | python3 -m json.tool
+Step 4: Trigger Test Alerts
+Create a script to generate high CPU load:
+
+nano /tmp/cpu_stress.sh
+#!/bin/bash
+# TODO: Create CPU stress test
+# Generate load on all CPU cores for testing
+
+echo "Starting CPU stress test..."
+# TODO: Implement stress test using yes command or similar
+# Hint: yes > /dev/null & (run multiple times)
+
+# TODO: Store PIDs for cleanup
+# TODO: Wait for specified duration
+# TODO: Kill processes
+
+echo "CPU stress test completed"
+Make executable and run:
+
+chmod +x /tmp/cpu_stress.sh
+# TODO: Run the script and monitor alerts
+Alternative manual trigger:
+
+# Generate CPU load (run in separate terminal)
+yes > /dev/null &
+yes > /dev/null &
+yes > /dev/null &
+
+# Note the PIDs to kill later
+# Wait 2-3 minutes and check alerts
+Step 5: Monitor Alert Status
+Check Prometheus UI for pending/firing alerts:
+
+# View alerts via API
+watch -n 5 'curl -s http://localhost:9090/api/v1/alerts | python3 -m json.tool'
+Check Alertmanager:
+
+# View alerts in Alertmanager
+curl http://localhost:9093/api/v2/alerts | python3 -m json.tool
+Monitor webhook receiver terminal for incoming alerts.
+
+Step 6: Cleanup Test Load
+# Kill CPU stress processes
+pkill yes
+
+# Verify CPU returns to normal
+top -bn1 | grep "Cpu(s)"
+Verification
+Verify Alert Rules Configuration
+# Check Prometheus configuration
+cd /opt/prometheus
+./promtool check config prometheus.yml
+
+# Check alert rules syntax
+./promtool check rules rules/alerts.yml
+Expected output: No errors, rules validated successfully.
+
+Verify Alert Firing
+Check Prometheus Alerts Page:
+
+Navigate to http://localhost:9090/alerts
+Verify alert rules are loaded
+Confirm alerts fired during stress test
+Check Alertmanager:
+
+Navigate to http://localhost:9093
+Verify alerts were received
+Check alert grouping and routing
+Verify Webhook Received Alerts:
+
+Review webhook receiver terminal output
+Confirm alert details were logged correctly
+Test Alert Resolution
+# Verify alerts resolve after conditions clear
+# Wait 5-10 minutes after stopping stress test
+curl http://localhost:9090/api/v1/alerts | python3 -m json.tool | grep state
+Expected: Alerts should transition from "firing" to "resolved".
+
+Troubleshooting Tips
+Alerts Not Firing:
+
+Verify PromQL expressions are correct
+Check evaluation interval in prometheus.yml
+Ensure metrics are being scraped (check targets page)
+Verify for duration has elapsed
+Alertmanager Not Receiving Alerts:
+
+Check Prometheus alerting configuration
+Verify Alertmanager is running on correct port
+Check Prometheus logs for connection errors
+Webhook Not Receiving Alerts:
+
+Verify webhook receiver is running
+Check Alertmanager routing configuration
+Review Alertmanager logs for delivery errors
+Common PromQL Issues:
+
+Use rate() for counter metrics
+Use by(instance) for per-instance aggregation
+Verify metric names match exactly (case-sensitive)
+Conclusion
+In this lab, you have:
+
+Configured Prometheus alert rules with threshold-based conditions
+Set up Alertmanager for alert routing and notification
+Implemented a webhook receiver for testing alerts
+Triggered and validated alert firing conditions
+Learned to troubleshoot common alerting issues
+Key Takeaways:
+
+Alert rules use PromQL expressions to define conditions
+The for clause prevents alert flapping
+Alertmanager handles routing, grouping, and deduplication
+Proper testing ensures alerts fire when needed
+Alert annotations provide context for responders
+Next Steps:
+
+Implement additional receivers (email, Slack, PagerDuty)
+Create more complex alert rules with multiple conditions
+Configure alert silencing and inhibition rules
+Set up alert escalation policies
+Integrate with incident management systems
+Cleanup (Optional):
+
+# Stop all services (Ctrl+C in each terminal)
+# Remove installations if needed
+sudo rm -rf /opt/prometheus /opt/alertmanager /opt/node_exporter
